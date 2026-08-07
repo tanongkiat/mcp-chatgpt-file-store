@@ -1,0 +1,180 @@
+import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import { randomUUID } from "node:crypto";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { createFileStoreServer } from "./server.js";
+
+const SESSION_HEADER = "mcp-session-id";
+const MCP_PATH = "/mcp";
+
+interface Session {
+  server: McpServer;
+  transport: StreamableHTTPServerTransport;
+}
+
+const sessions = new Map<string, Session>();
+
+function readJsonBody(req: IncomingMessage): Promise<unknown> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    req.on("data", (c) => chunks.push(c));
+    req.on("end", () => {
+      try {
+        const text = Buffer.concat(chunks).toString("utf8");
+        resolve(text ? JSON.parse(text) : undefined);
+      } catch (err) {
+        reject(err);
+      }
+    });
+    req.on("error", reject);
+  });
+}
+
+function sendJson(res: ServerResponse, status: number, body: unknown): void {
+  const payload = JSON.stringify(body);
+  res.writeHead(status, {
+    "Content-Type": "application/json",
+    "Content-Length": Buffer.byteLength(payload),
+  });
+  res.end(payload);
+}
+
+function setCors(res: ServerResponse): void {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Mcp-Session-Id, Authorization, Accept"
+  );
+}
+
+function getSessionId(req: IncomingMessage): string | undefined {
+  const header = req.headers[SESSION_HEADER];
+  return Array.isArray(header) ? header[0] : header;
+}
+
+/**
+ * Creates a fresh MCP server + transport for a new HTTP session and
+ * registers it in the session map. Returns the session id.
+ */
+async function createSession(): Promise<string> {
+  const sessionId = randomUUID();
+  const transport = new StreamableHTTPServerTransport({
+    sessionIdGenerator: () => sessionId,
+    enableJsonResponse: true,
+  });
+  const server = createFileStoreServer();
+
+  transport.onclose = () => {
+    sessions.delete(sessionId);
+  };
+
+  await server.connect(transport);
+  sessions.set(sessionId, { server, transport });
+  return sessionId;
+}
+
+/**
+ * Starts a Streamable HTTP MCP server.
+ *   POST /mcp  - JSON-RPC request (creates a session on first call)
+ *   GET  /mcp  - SSE stream for server-initiated messages
+ *   DELETE /mcp - ends a session
+ *   GET  /health - liveness probe
+ */
+export async function startHttpServer(
+  port: number,
+  host = "0.0.0.0"
+): Promise<void> {
+  const httpServer = createServer(async (req, res) => {
+    setCors(res);
+
+    if (req.method === "OPTIONS") {
+      res.writeHead(204);
+      res.end();
+      return;
+    }
+
+    const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
+
+    if (req.method === "GET" && url.pathname === "/health") {
+      sendJson(res, 200, { status: "ok", sessions: sessions.size });
+      return;
+    }
+
+    if (url.pathname !== MCP_PATH) {
+      sendJson(res, 404, { error: "Not found. Use POST /mcp" });
+      return;
+    }
+
+    const sessionId = getSessionId(req);
+
+    // GET: open SSE stream for an existing session
+    if (req.method === "GET") {
+      if (!sessionId) {
+        sendJson(res, 400, { error: "Missing Mcp-Session-Id header" });
+        return;
+      }
+      const session = sessions.get(sessionId);
+      if (!session) {
+        sendJson(res, 404, { error: "Unknown session" });
+        return;
+      }
+      await session.transport.handleRequest(req, res);
+      return;
+    }
+
+    // DELETE: close an existing session
+    if (req.method === "DELETE") {
+      if (!sessionId) {
+        sendJson(res, 400, { error: "Missing Mcp-Session-Id header" });
+        return;
+      }
+      const session = sessions.get(sessionId);
+      if (!session) {
+        sendJson(res, 404, { error: "Unknown session" });
+        return;
+      }
+      await session.transport.handleRequest(req, res);
+      sessions.delete(sessionId);
+      return;
+    }
+
+    // POST: JSON-RPC
+    if (req.method === "POST") {
+      let body: unknown;
+      try {
+        body = await readJsonBody(req);
+      } catch {
+        sendJson(res, 400, { error: "Invalid JSON body" });
+        return;
+      }
+
+      if (!sessionId) {
+        // First request in a new session
+        const newId = await createSession();
+        const session = sessions.get(newId)!;
+        await session.transport.handleRequest(req, res, body);
+        return;
+      }
+
+      const session = sessions.get(sessionId);
+      if (!session) {
+        sendJson(res, 404, { error: "Unknown session" });
+        return;
+      }
+      await session.transport.handleRequest(req, res, body);
+      return;
+    }
+
+    sendJson(res, 405, { error: "Method not allowed" });
+  });
+
+  await new Promise<void>((resolve, reject) => {
+    httpServer.once("error", reject);
+    httpServer.listen(port, host, () => resolve());
+  });
+
+  console.error(
+    `[mcp-chatgpt-file-store] Streamable HTTP server listening on http://${host}:${port}/mcp`
+  );
+}

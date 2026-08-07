@@ -1,0 +1,32 @@
+{
+  "name": "mcp-chatgpt-file-store",
+  "version": "0.1.0",
+  "description": "MCP server that lets ChatGPT read/write files inside a sandboxed local folder",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "mcp-chatgpt-file-store": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "start:http": "node dist/index.js --http",
+    "dev": "tsx src/index.ts",
+    "dev:http": "tsx src/index.ts --http",
+    "watch": "tsc --watch",
+    "inspect": "npx @modelcontextprotocol/inspector node dist/index.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}
