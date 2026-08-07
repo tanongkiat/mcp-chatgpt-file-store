@@ -7,6 +7,7 @@
 #   ./scripts/upload-to-remote.sh [base_url]
 #
 # Default endpoint: https://mcp.boydproject.site:8443/mcp
+# Set MCP_TOKEN to send a Bearer token (Authorization header).
 #
 # Uploads: files listed in FILES array (local:relative/dest/path) into the
 # remote sandbox, preserving the relative destination path.
@@ -14,6 +15,12 @@ set -euo pipefail
 
 BASE_URL="${1:-https://mcp.boydproject.site:8443/mcp}"
 ACCEPT="application/json, text/event-stream"
+
+# Authorization header (only added when MCP_TOKEN is set)
+AUTH_ARGS=()
+if [ -n "${MCP_TOKEN:-}" ]; then
+  AUTH_ARGS=(-H "Authorization: Bearer $MCP_TOKEN")
+fi
 
 # Files to upload: "local/path:remote/dest/path" (relative to project root).
 # All files go under a "Deepseek" folder on the remote server.
@@ -38,6 +45,7 @@ echo "== Upload to $BASE_URL =="
 SID=$(curl -s -D - -o /dev/null -X POST "$BASE_URL" \
   -H "Content-Type: application/json" \
   -H "Accept: $ACCEPT" \
+  "${AUTH_ARGS[@]}" \
   -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"upload-to-remote","version":"1.0"}}}' \
   | awk -F': ' 'tolower($1)=="mcp-session-id" {gsub("\r","",$2); print $2}')
 
@@ -50,14 +58,14 @@ echo "Session ID: $SID"
 # 2) Mark initialized
 curl -s -o /dev/null -w "initialized: %{http_code}\n" -X POST "$BASE_URL" \
   -H "Content-Type: application/json" -H "Accept: $ACCEPT" \
-  -H "Mcp-Session-Id: $SID" \
+  -H "Mcp-Session-Id: $SID" "${AUTH_ARGS[@]}" \
   -d '{"jsonrpc":"2.0","method":"notifications/initialized"}'
 
 # 3) Create the destination folder first
 echo "== create_directory: $DEST_FOLDER =="
 curl -s -X POST "$BASE_URL" \
   -H "Content-Type: application/json" -H "Accept: $ACCEPT" \
-  -H "Mcp-Session-Id: $SID" \
+  -H "Mcp-Session-Id: $SID" "${AUTH_ARGS[@]}" \
   -d "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{\"name\":\"create_directory\",\"arguments\":{\"path\":\"$DEST_FOLDER\"}}}"
 
 # 4) Upload each file
@@ -89,16 +97,16 @@ PY
 
   response=$(curl -s -X POST "$BASE_URL" \
     -H "Content-Type: application/json" -H "Accept: $ACCEPT" \
-    -H "Mcp-Session-Id: $SID" \
+    -H "Mcp-Session-Id: $SID" "${AUTH_ARGS[@]}" \
     --data @/tmp/mcp_upload_payload.json)
 
   ok=$(echo "$response" | python3 -c "import sys,json; d=json.load(sys.stdin); print('OK' if 'result' in d else 'FAIL')" 2>/dev/null || echo "FAIL")
   echo "$ok: $local_path -> $remote_path"
 done
 
-# 4) Close the session
+# 5) Close the session
 curl -s -o /dev/null -w "session closed: %{http_code}\n" -X DELETE "$BASE_URL" \
-  -H "Mcp-Session-Id: $SID"
+  -H "Mcp-Session-Id: $SID" "${AUTH_ARGS[@]}"
 
 rm -f /tmp/mcp_upload_payload.json
 echo "Done."

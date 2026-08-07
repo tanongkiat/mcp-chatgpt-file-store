@@ -10,17 +10,23 @@
  *   npx tsx scripts/mcp-client.ts read_file '{"path":"notes/hello.md"}'
  *
  * Endpoint via MCP_URL env (default https://mcp.boydproject.site:8443/mcp).
+ * Bearer token via MCP_TOKEN env (sent as Authorization header).
  */
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 
 const MCP_URL = process.env.MCP_URL ?? "https://mcp.boydproject.site:8443/mcp";
+const MCP_TOKEN = process.env.MCP_TOKEN;
 
 async function main(): Promise<void> {
+  const headers: Record<string, string> = {
+    Accept: "application/json, text/event-stream",
+  };
+  if (MCP_TOKEN) {
+    headers.Authorization = `Bearer ${MCP_TOKEN}`;
+  }
   const transport = new StreamableHTTPClientTransport(new URL(MCP_URL), {
-    requestInit: {
-      headers: { Accept: "application/json, text/event-stream" },
-    },
+    requestInit: { headers },
   });
   const client = new Client(
     { name: "mcp-client-demo", version: "1.0.0" },
