@@ -93,12 +93,18 @@ Start the HTTP server (default port `3000`):
 npm run start:http
 ```
 
-Or with custom port/host:
+Or with a custom port/host:
 
 ```bash
 node dist/index.js --http --port 8080 --host 0.0.0.0
 # or via environment variables
 MCP_HTTP_PORT=8080 MCP_HTTP=1 node dist/index.js
+```
+
+Via the npm script, pass flags after `--`:
+
+```bash
+npm run start:http -- --port 8080 --host 0.0.0.0
 ```
 
 Then register `http://localhost:3000/mcp` as the MCP server URL in ChatGPT.
