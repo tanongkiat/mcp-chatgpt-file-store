@@ -1,11 +1,26 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import { randomUUID } from "node:crypto";
+import { randomUUID, timingSafeEqual } from "node:crypto";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { createFileStoreServer } from "./server.js";
 
 const SESSION_HEADER = "mcp-session-id";
 const MCP_PATH = "/mcp";
+const AUTH_TOKEN = process.env.MCP_AUTH_TOKEN;
+
+/** Constant-time bearer token check. Returns true if no token is configured (auth disabled). */
+function isAuthorized(req: IncomingMessage): boolean {
+  if (!AUTH_TOKEN) return true;
+
+  const header = req.headers["authorization"];
+  const value = Array.isArray(header) ? header[0] : header;
+  if (!value?.startsWith("Bearer ")) return false;
+
+  const provided = Buffer.from(value.slice("Bearer ".length));
+  const expected = Buffer.from(AUTH_TOKEN);
+  if (provided.length !== expected.length) return false;
+  return timingSafeEqual(provided, expected);
+}
 
 interface Session {
   server: McpServer;
@@ -106,6 +121,12 @@ export async function startHttpServer(
       return;
     }
 
+    if (!isAuthorized(req)) {
+      res.setHeader("WWW-Authenticate", "Bearer");
+      sendJson(res, 401, { error: "Unauthorized. Missing or invalid Bearer token." });
+      return;
+    }
+
     const sessionId = getSessionId(req);
 
     // GET: open SSE stream for an existing session
@@ -177,4 +198,11 @@ export async function startHttpServer(
   console.error(
     `[mcp-chatgpt-file-store] Streamable HTTP server listening on http://${host}:${port}/mcp`
   );
+  if (!AUTH_TOKEN) {
+    console.error(
+      "[mcp-chatgpt-file-store] WARNING: MCP_AUTH_TOKEN is not set — /mcp is reachable without authentication."
+    );
+  } else {
+    console.error("[mcp-chatgpt-file-store] Bearer token authentication is enabled.");
+  }
 }

@@ -1,0 +1,1 @@
+Save check by Claude - confirms create_directory + write_file work together over https://mcp.boydproject.site:8443/mcp

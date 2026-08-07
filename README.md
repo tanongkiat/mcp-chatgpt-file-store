@@ -108,6 +108,23 @@ npm run start:http -- --port 8080 --host 0.0.0.0
 ```
 
 Then register `http://localhost:3000/mcp` as the MCP server URL in ChatGPT.
+
+### Authentication (recommended for any non-localhost deployment)
+
+Set `MCP_AUTH_TOKEN` to require a Bearer token on every `/mcp` request:
+
+```bash
+MCP_AUTH_TOKEN=$(openssl rand -hex 32) node dist/index.js --http --port 8080
+```
+
+Requests must then include `Authorization: Bearer <token>` — otherwise they get a
+`401 Unauthorized`. `/health` stays open (no token needed) for liveness checks.
+When registering the connector in ChatGPT, add the same value as a custom header:
+`Authorization: Bearer <token>`.
+
+If `MCP_AUTH_TOKEN` is not set, the server logs a startup warning and accepts
+unauthenticated requests — fine for quick local testing, **not** for anything
+reachable from the internet.
 The server implements the MCP Streamable HTTP transport:
 
 - `POST /mcp` — JSON-RPC requests (first call creates a session and returns a
@@ -132,8 +149,9 @@ Once connected, you can tell ChatGPT things like:
 - In stdio mode the server exposes no network port at all.
 - In HTTP mode the server binds to `0.0.0.0:3000` by default — use
   `--host 127.0.0.1` to restrict it to localhost only. Sessions are tracked by
-  random UUID; there is **no authentication**, so do not expose this server to
-  the public internet.
+  random UUID. Set `MCP_AUTH_TOKEN` (see Authentication above) before exposing
+  this server beyond localhost — without it, anyone who finds the URL can
+  read/write files in the sandbox.
 - Only the configured directory is readable/writable — treat the sandbox as
   **not secret** (ChatGPT content is processed by the model provider).
 
