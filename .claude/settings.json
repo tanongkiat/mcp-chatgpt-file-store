@@ -7,7 +7,17 @@
       "Bash(npm run *)",
       "Bash(git status *)",
       "Bash(git restore *)",
-      "Bash(git commit -q -m ' *)"
+      "Bash(git commit -q -m ' *)",
+      "Bash(python3 -c ' *)",
+      "Bash(git fetch *)",
+      "Bash(git rev-list *)",
+      "Bash(git ls-tree *)",
+      "Bash(chmod +x scripts/stop.sh)",
+      "Bash(./scripts/stop.sh --port 3999)",
+      "Bash(echo \"exit=$?\")",
+      "Bash(node dist/index.js --http --port 3999 --host 127.0.0.1)",
+      "Bash(curl -s http://127.0.0.1:3999/health)",
+      "Bash(curl -s --max-time 2 http://127.0.0.1:3999/health)"
     ]
   }
 }
