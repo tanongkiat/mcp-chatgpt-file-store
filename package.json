@@ -12,6 +12,8 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "start:http": "node dist/index.js --http",
+    "start:auth": "./scripts/start-with-auth.sh",
+    "generate-token": "./scripts/generate-token.sh",
     "dev": "tsx src/index.ts",
     "dev:http": "tsx src/index.ts --http",
     "watch": "tsc --watch",

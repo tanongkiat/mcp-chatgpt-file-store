@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(chatgpt)",
+      "Bash(grep -rn \"chatgpt/\\\\|/chatgpt\\\\b\\\\|\\\\\"chatgpt\\\\\"\\\\|`chatgpt`\" --include=\"*.md\" --include=\"*.sh\" . --exclude-dir=node_modules --exclude-dir=dist)",
+      "Bash(git mv *)",
+      "Bash(npm run *)",
+      "Bash(git status *)",
+      "Bash(git restore *)",
+      "Bash(git commit -q -m ' *)"
+    ]
+  }
+}
