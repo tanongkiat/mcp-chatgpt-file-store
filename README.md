@@ -35,6 +35,7 @@ mcp-chatgpt-file-store/
 ├── scripts/
 │   ├── generate-token.sh    # create + save an auth token
 │   ├── start-with-auth.sh   # generate token and start the HTTP server
+│   ├── stop.sh              # stop the HTTP server by port
 │   ├── setup-claude.sh      # register this server with Claude
 │   └── test-auth.sh         # verify auth is enforced
 ├── dist/                    # compiled output (committed, so no build needed to run)
@@ -209,6 +210,20 @@ source .env && npm run start:http
 
 See [QUICKSTART.md](QUICKSTART.md) for more details.
 
+### Stopping the server
+
+`start:auth` and `start:http` run in the foreground, so `Ctrl+C` stops them. If
+the server is running detached or in another terminal, stop it by port:
+
+```bash
+npm run stop                      # stops the server on port 3000
+npm run stop -- --port 8080       # a different port
+npm run stop -- --force           # SIGKILL if it ignores SIGTERM
+```
+
+It sends `SIGTERM` first, waits up to 5 seconds for the port to free, and
+exits `0` if nothing was listening.
+
 ### HTTP Transport
 
 The server implements the MCP Streamable HTTP transport:
@@ -249,6 +264,7 @@ npm run watch          # recompile on change
 npm run start          # run compiled server over stdio
 npm run start:http     # run compiled server over Streamable HTTP (port 3000)
 npm run start:auth     # generate a token and start the HTTP server with auth
+npm run stop           # stop the HTTP server (SIGTERM, then --force for SIGKILL)
 npm run generate-token # create a token and save it to .mcp-token
 npm run dev            # run stdio mode with tsx (no build step)
 npm run dev:http       # run HTTP mode with tsx (no build step)
