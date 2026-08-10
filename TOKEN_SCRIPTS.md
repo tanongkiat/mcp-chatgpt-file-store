@@ -134,10 +134,10 @@ npm run start:auth
 TOKEN=$(cat .mcp-token)
 
 # Test health endpoint with header
-curl -H "Authorization: Bearer $TOKEN" http://localhost:3000/health
+curl -H "Authorization: Bearer $TOKEN" http://localhost:8080/health
 
 # Test with query parameter
-curl "http://localhost:3000/health?token=$TOKEN"
+curl "http://localhost:8080/health?token=$TOKEN"
 ```
 
 ## 🔄 Workflow Examples

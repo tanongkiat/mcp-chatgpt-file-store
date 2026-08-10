@@ -11,7 +11,7 @@ const useHttp = process.argv.includes("--http") ||
     process.env.MCP_HTTP === "true";
 async function main() {
     if (useHttp) {
-        const port = Number(argValue("--port") ?? process.env.MCP_HTTP_PORT ?? 3000);
+        const port = Number(argValue("--port") ?? process.env.MCP_HTTP_PORT ?? 8080);
         const host = argValue("--host") ?? process.env.MCP_HTTP_HOST ?? "0.0.0.0";
         await startHttpServer(port, host);
         return;

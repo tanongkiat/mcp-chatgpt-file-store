@@ -14,7 +14,7 @@ echo -e "${BLUE}🛑 MCP Server Shutdown${NC}"
 echo "======================="
 echo ""
 
-PORT=${MCP_HTTP_PORT:-3000}
+PORT=${MCP_HTTP_PORT:-8080}
 FORCE=0
 
 while [[ $# -gt 0 ]]; do

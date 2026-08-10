@@ -7,12 +7,12 @@ Your MCP server now accepts authentication tokens from **two sources**:
 ### 1. Authorization Header (Standard)
 ```bash
 curl -H "Authorization: Bearer your-secret-token" \
-  http://localhost:3000/mcp
+  http://localhost:8080/mcp
 ```
 
 ### 2. Query Parameter (New!)
 ```bash
-curl http://localhost:3000/mcp?token=your-secret-token
+curl http://localhost:8080/mcp?token=your-secret-token
 ```
 
 Both methods use constant-time comparison for security.
@@ -232,7 +232,7 @@ OAUTH_ISSUER=https://your-domain.auth0.com/
 OAUTH_AUDIENCE=https://api.your-mcp-server.com
 
 # Server config
-MCP_HTTP_PORT=3000
+MCP_HTTP_PORT=8080
 MCP_HTTP_HOST=0.0.0.0
 ```
 
@@ -251,10 +251,10 @@ ACCESS_TOKEN=$(curl -X POST https://your-domain.auth0.com/oauth/token \
 
 # 2. Test with header
 curl -H "Authorization: Bearer $ACCESS_TOKEN" \
-  http://localhost:3000/mcp
+  http://localhost:8080/mcp
 
 # 3. Test with query parameter
-curl "http://localhost:3000/mcp?token=$ACCESS_TOKEN"
+curl "http://localhost:8080/mcp?token=$ACCESS_TOKEN"
 ```
 
 ---

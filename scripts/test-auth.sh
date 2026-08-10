@@ -3,7 +3,7 @@
 
 set -e
 
-PORT=3000
+PORT=8080
 HOST="localhost"
 TOKEN="test-secret-token"
 

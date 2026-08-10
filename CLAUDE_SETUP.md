@@ -59,7 +59,7 @@ If you're running the MCP server on a different machine or want to use HTTP:
         "/Users/YOUR_USERNAME/Documents/Dev_POC/mcp-chatgpt-file-store/dist/index.js",
         "--http",
         "--port",
-        "3000"
+        "8080"
       ],
       "env": {
         "CHATGPT_FILE_STORE_DIRS": "/Users/YOUR_USERNAME/Documents/claude-files",
@@ -152,7 +152,7 @@ Save this as `setup-claude.sh`, make it executable (`chmod +x setup-claude.sh`),
 |----------|-------------|---------|
 | `CHATGPT_FILE_STORE_DIRS` | Comma-separated allowed directories | `./Storage` |
 | `MCP_HTTP` | Enable HTTP mode | `false` |
-| `MCP_HTTP_PORT` | HTTP server port | `3000` |
+| `MCP_HTTP_PORT` | HTTP server port | `8080` |
 | `MCP_HTTP_HOST` | HTTP server host | `0.0.0.0` |
 | `MCP_AUTH_TOKEN` | Authentication token for HTTP mode | none |
 | `OAUTH_ENABLED` | Enable OAuth 2.0 | `false` |

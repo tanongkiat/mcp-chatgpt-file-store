@@ -60,12 +60,12 @@ After starting the server with authentication:
 ### Test with header:
 ```bash
 curl -H "Authorization: Bearer YOUR_TOKEN_HERE" \
-  http://localhost:3000/health
+  http://localhost:8080/health
 ```
 
 ### Test with query parameter:
 ```bash
-curl "http://localhost:3000/health?token=YOUR_TOKEN_HERE"
+curl "http://localhost:8080/health?token=YOUR_TOKEN_HERE"
 ```
 
 ### Run comprehensive tests:
@@ -90,7 +90,7 @@ npm run generate-token
 ### Use token in other scripts:
 ```bash
 TOKEN=$(cat .mcp-token)
-curl -H "Authorization: Bearer $TOKEN" http://localhost:3000/mcp
+curl -H "Authorization: Bearer $TOKEN" http://localhost:8080/mcp
 ```
 
 ## 📊 Available npm Scripts
@@ -126,7 +126,7 @@ npm run start:auth
 # Start with saved token
 npm run start:auth
 
-# Server runs at http://localhost:3000/mcp
+# Server runs at http://localhost:8080/mcp
 # Token is automatically loaded from .mcp-token
 ```
 
@@ -233,4 +233,4 @@ The quickest way to get started:
 npm run start:auth
 ```
 
-Your server will be running with authentication at `http://localhost:3000/mcp`
+Your server will be running with authentication at `http://localhost:8080/mcp`

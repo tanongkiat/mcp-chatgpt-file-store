@@ -23,6 +23,42 @@ ChatGPT gets these tools:
 | `move_file` | Moves/renames files |
 | `delete_file` | Deletes a file or folder |
 
+## Installation
+
+**Requirements:** Node.js 18 or newer (`node -v` to check) and `git`.
+
+```bash
+# 1. Clone the repo
+git clone https://github.com/tanongkiat/mcp-chatgpt-file-store.git
+cd mcp-chatgpt-file-store
+
+# 2. Install dependencies
+npm install
+
+# 3. Build (optional — dist/ is committed, so a fresh clone already runs)
+npm run build
+```
+
+Verify the install by starting the server over HTTP and hitting the health
+endpoint from a second terminal:
+
+```bash
+npm run start:http
+```
+
+```bash
+curl http://localhost:8080/health
+# {"status":"ok","sessions":0}
+```
+
+`Ctrl+C` stops it, or `npm run stop` from another terminal.
+
+That's the whole install. Next: pick your sandbox folder ([Setup](#setup)),
+then connect a client — [ChatGPT](#3b-connect-over-streamable-http) or
+[Claude](#3c-connect-to-claude-desktop). Exposing the server beyond localhost?
+Read [Authentication](#authentication-recommended-for-any-non-localhost-deployment)
+first.
+
 ## Folder layout
 
 ```text
@@ -62,22 +98,11 @@ The server supports **two transports** — pick whichever your client wants:
 | Mode | Command | Endpoint |
 |---|---|---|
 | stdio (default) | `npm run start` | n/a (local process) |
-| Streamable HTTP | `npm run start:http` | `http://localhost:3000/mcp` |
+| Streamable HTTP | `npm run start:http` | `http://localhost:8080/mcp` |
 
 ## Setup
 
-### 1. Install dependencies and build
-
-```bash
-cd mcp-chatgpt-file-store
-npm install
-npm run build
-```
-
-`dist/` is committed, so a freshly cloned copy runs without building. Rebuild
-after any change to `src/`.
-
-### 2. Choose where ChatGPT can save
+### 1. Choose where ChatGPT can save
 
 By default the sandbox is `<folder where the server runs>/Storage` (i.e. the
 `Storage/` folder inside this project). To use your own folder(s), set an
@@ -87,7 +112,7 @@ environment variable:
 export CHATGPT_FILE_STORE_DIRS="/path/to/my/notes,/path/to/another"
 ```
 
-### 3. Test it locally (optional but recommended)
+### 2. Test it locally (optional but recommended)
 
 ```bash
 npm run inspect
@@ -95,7 +120,7 @@ npm run inspect
 
 This opens the MCP Inspector where you can call each tool before wiring it to ChatGPT.
 
-### 4a. Connect over stdio
+### 3a. Connect over stdio
 
 In ChatGPT, add a custom MCP server with this command:
 
@@ -107,9 +132,9 @@ node /absolute/path/to/mcp-chatgpt-file-store/dist/index.js
 > absolute path. If you set `CHATGPT_FILE_STORE_DIRS`, make sure that environment
 > variable is visible to the process ChatGPT launches.
 
-### 4b. Connect over Streamable HTTP
+### 3b. Connect over Streamable HTTP
 
-Start the HTTP server (default port `3000`):
+Start the HTTP server (default port `8080`):
 
 ```bash
 npm run start:http
@@ -118,20 +143,20 @@ npm run start:http
 Or with a custom port/host:
 
 ```bash
-node dist/index.js --http --port 8080 --host 0.0.0.0
+node dist/index.js --http --port 9090 --host 0.0.0.0
 # or via environment variables
-MCP_HTTP_PORT=8080 MCP_HTTP=1 node dist/index.js
+MCP_HTTP_PORT=9090 MCP_HTTP=1 node dist/index.js
 ```
 
 Via the npm script, pass flags after `--`:
 
 ```bash
-npm run start:http -- --port 8080 --host 0.0.0.0
+npm run start:http -- --port 9090 --host 0.0.0.0
 ```
 
-Then register `http://localhost:3000/mcp` as the MCP server URL in ChatGPT.
+Then register `http://localhost:8080/mcp` as the MCP server URL in ChatGPT.
 
-### 4c. Connect to Claude Desktop
+### 3c. Connect to Claude Desktop
 
 Any MCP client works, not just ChatGPT. For Claude Desktop, run the interactive
 setup script — it resolves the absolute path to `dist/index.js`, asks which
@@ -155,19 +180,19 @@ claude mcp add file-store -- node /absolute/path/to/mcp-chatgpt-file-store/dist/
 Set `MCP_AUTH_TOKEN` to require a Bearer token on every `/mcp` request:
 
 ```bash
-MCP_AUTH_TOKEN=$(openssl rand -hex 32) node dist/index.js --http --port 8080
+MCP_AUTH_TOKEN=$(openssl rand -hex 32) node dist/index.js --http
 ```
 
 The server accepts tokens via **two methods**:
 
 1. **Authorization header** (standard):
    ```bash
-   curl -H "Authorization: Bearer <token>" http://localhost:3000/mcp
+   curl -H "Authorization: Bearer <token>" http://localhost:8080/mcp
    ```
 
 2. **Query parameter** (convenient for some clients):
    ```bash
-   curl http://localhost:3000/mcp?token=<token>
+   curl http://localhost:8080/mcp?token=<token>
    ```
 
 Both methods are validated using constant-time comparison for security. Requests 
@@ -216,8 +241,8 @@ See [QUICKSTART.md](QUICKSTART.md) for more details.
 the server is running detached or in another terminal, stop it by port:
 
 ```bash
-npm run stop                      # stops the server on port 3000
-npm run stop -- --port 8080       # a different port
+npm run stop                      # stops the server on port 8080
+npm run stop -- --port 9090       # a different port
 npm run stop -- --force           # SIGKILL if it ignores SIGTERM
 ```
 
@@ -248,7 +273,7 @@ Once connected, you can tell ChatGPT things like:
 - Every path is resolved and checked against the allowed roots before any operation.
 - `..` traversal and paths outside the roots are rejected with an error.
 - In stdio mode the server exposes no network port at all.
-- In HTTP mode the server binds to `0.0.0.0:3000` by default — use
+- In HTTP mode the server binds to `0.0.0.0:8080` by default — use
   `--host 127.0.0.1` to restrict it to localhost only. Sessions are tracked by
   random UUID. Set `MCP_AUTH_TOKEN` (see Authentication above) before exposing
   this server beyond localhost — without it, anyone who finds the URL can
@@ -262,7 +287,7 @@ Once connected, you can tell ChatGPT things like:
 npm run build          # compile TypeScript
 npm run watch          # recompile on change
 npm run start          # run compiled server over stdio
-npm run start:http     # run compiled server over Streamable HTTP (port 3000)
+npm run start:http     # run compiled server over Streamable HTTP (port 8080)
 npm run start:auth     # generate a token and start the HTTP server with auth
 npm run stop           # stop the HTTP server (SIGTERM, then --force for SIGKILL)
 npm run generate-token # create a token and save it to .mcp-token

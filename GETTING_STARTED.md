@@ -85,7 +85,7 @@ All automatically protected by `.gitignore`!
 │         ↓                                                    │
 │  ┌──────────────────────────┐                              │
 │  │  Start HTTP Server       │                              │
-│  │  http://localhost:3000   │                              │
+│  │  http://localhost:8080   │                              │
 │  └──────────────────────────┘                              │
 └─────────────────────────────────────────────────────────────┘
 
@@ -95,10 +95,10 @@ All automatically protected by `.gitignore`!
 │                                                              │
 │  Method 1: Header                                           │
 │  curl -H "Authorization: Bearer 7b4c270e..." \             │
-│       http://localhost:3000/health                          │
+│       http://localhost:8080/health                          │
 │                                                              │
 │  Method 2: Query Parameter                                  │
-│  curl http://localhost:3000/health?token=7b4c270e...        │
+│  curl http://localhost:8080/health?token=7b4c270e...        │
 │                                                              │
 │  Both methods validated with constant-time comparison       │
 └─────────────────────────────────────────────────────────────┘
@@ -123,17 +123,17 @@ All automatically protected by `.gitignore`!
 TOKEN=$(cat .mcp-token)
 
 # Test with header
-curl -H "Authorization: Bearer $TOKEN" http://localhost:3000/health
+curl -H "Authorization: Bearer $TOKEN" http://localhost:8080/health
 
 # Test with query param
-curl "http://localhost:3000/health?token=$TOKEN"
+curl "http://localhost:8080/health?token=$TOKEN"
 
 # Test MCP tools list
 curl -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -X POST \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' \
-  http://localhost:3000/mcp
+  http://localhost:8080/mcp
 ```
 
 ## 🔒 Security Features
@@ -183,7 +183,7 @@ Production Workflow:
 │  └─ npm run start:auth                                      │
 │                                                              │
 │  Monitoring:                                                │
-│  └─ curl http://localhost:3000/health                       │
+│  └─ curl http://localhost:8080/health                       │
 │                                                              │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -194,7 +194,7 @@ Production Workflow:
 ```bash
 npm run start:auth
 # Token auto-generated
-# Server running at http://localhost:3000
+# Server running at http://localhost:8080
 ```
 
 ### Team Development
@@ -228,7 +228,7 @@ Your setup is complete when:
 - ✅ `npm run start:auth` starts the server
 - ✅ `.mcp-token` file exists with 64-char token
 - ✅ `.env` file contains `MCP_AUTH_TOKEN`
-- ✅ Health endpoint responds: `curl http://localhost:3000/health`
+- ✅ Health endpoint responds: `curl http://localhost:8080/health`
 - ✅ Auth works with token
 - ✅ Files are in `.gitignore`
 
@@ -264,18 +264,18 @@ $ npm run start:auth
 
 Server details:
    Host: 0.0.0.0
-   Port: 3000
-   Endpoint: http://0.0.0.0:3000/mcp
-   Health: http://0.0.0.0:3000/health
+   Port: 8080
+   Endpoint: http://0.0.0.0:8080/mcp
+   Health: http://0.0.0.0:8080/health
 
 Press Ctrl+C to stop the server
 
-[mcp-chatgpt-file-store] Streamable HTTP server listening on http://0.0.0.0:3000/mcp
+[mcp-chatgpt-file-store] Streamable HTTP server listening on http://0.0.0.0:8080/mcp
 
 
 # 2. Test in another terminal
 $ TOKEN=$(cat .mcp-token)
-$ curl -H "Authorization: Bearer $TOKEN" http://localhost:3000/health
+$ curl -H "Authorization: Bearer $TOKEN" http://localhost:8080/health
 {"status":"ok","sessions":0}
 
 # 3. Success! 🎉

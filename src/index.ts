@@ -15,7 +15,7 @@ const useHttp =
 
 async function main(): Promise<void> {
   if (useHttp) {
-    const port = Number(argValue("--port") ?? process.env.MCP_HTTP_PORT ?? 3000);
+    const port = Number(argValue("--port") ?? process.env.MCP_HTTP_PORT ?? 8080);
     const host = argValue("--host") ?? process.env.MCP_HTTP_HOST ?? "0.0.0.0";
     await startHttpServer(port, host);
     return;

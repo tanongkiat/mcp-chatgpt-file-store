@@ -78,7 +78,7 @@ else
 MCP_AUTH_TOKEN=$TOKEN
 
 # HTTP Server Settings
-# MCP_HTTP_PORT=3000
+# MCP_HTTP_PORT=8080
 # MCP_HTTP_HOST=0.0.0.0
 
 # File Store
@@ -118,10 +118,10 @@ echo ""
 echo -e "${BLUE}Test the token:${NC}"
 echo ""
 echo "   # Via header"
-echo "   curl -H 'Authorization: Bearer $TOKEN' http://localhost:3000/health"
+echo "   curl -H 'Authorization: Bearer $TOKEN' http://localhost:8080/health"
 echo ""
 echo "   # Via query parameter"
-echo "   curl 'http://localhost:3000/health?token=$TOKEN'"
+echo "   curl 'http://localhost:8080/health?token=$TOKEN'"
 echo ""
 echo -e "${YELLOW}⚠️  Keep this token secure! It's saved in:${NC}"
 echo "   - $TOKEN_FILE"

@@ -67,7 +67,7 @@
 npm run start:http
 
 # Request (no token needed)
-curl http://localhost:3000/health
+curl http://localhost:8080/health
 # ✅ Response: {"status":"ok","sessions":0}
 ```
 
@@ -78,11 +78,11 @@ MCP_AUTH_TOKEN=secret123 npm run start:http
 
 # Request with header
 curl -H "Authorization: Bearer secret123" \
-  http://localhost:3000/health
+  http://localhost:8080/health
 # ✅ Response: {"status":"ok","sessions":0}
 
 # Request without token
-curl http://localhost:3000/health
+curl http://localhost:8080/health
 # ❌ Response: {"error":"Unauthorized..."}
 ```
 
@@ -92,11 +92,11 @@ curl http://localhost:3000/health
 MCP_AUTH_TOKEN=secret123 npm run start:http
 
 # Request with query param
-curl "http://localhost:3000/health?token=secret123"
+curl "http://localhost:8080/health?token=secret123"
 # ✅ Response: {"status":"ok","sessions":0}
 
 # Request with wrong token
-curl "http://localhost:3000/health?token=wrong"
+curl "http://localhost:8080/health?token=wrong"
 # ❌ Response: {"error":"Unauthorized..."}
 ```
 
@@ -104,7 +104,7 @@ curl "http://localhost:3000/health?token=wrong"
 ```bash
 # If both are provided, header takes precedence
 curl -H "Authorization: Bearer secret123" \
-  "http://localhost:3000/health?token=different"
+  "http://localhost:8080/health?token=different"
 # Uses: secret123 (from header)
 ```
 

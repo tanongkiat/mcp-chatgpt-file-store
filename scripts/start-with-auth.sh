@@ -70,14 +70,14 @@ echo ""
 echo -e "${BLUE}💡 Usage examples:${NC}"
 echo ""
 echo "   Header authentication:"
-echo "   curl -H 'Authorization: Bearer $MCP_AUTH_TOKEN' http://localhost:3000/health"
+echo "   curl -H 'Authorization: Bearer $MCP_AUTH_TOKEN' http://localhost:8080/health"
 echo ""
 echo "   Query parameter authentication:"
-echo "   curl 'http://localhost:3000/health?token=$MCP_AUTH_TOKEN'"
+echo "   curl 'http://localhost:8080/health?token=$MCP_AUTH_TOKEN'"
 echo ""
 
 # Get port and host
-PORT=${MCP_HTTP_PORT:-3000}
+PORT=${MCP_HTTP_PORT:-8080}
 HOST=${MCP_HTTP_HOST:-0.0.0.0}
 
 # Allow command line overrides

@@ -7,12 +7,12 @@ Your MCP server now accepts authentication tokens from **two sources**:
 
 #### Method 1: Authorization Header (Standard)
 ```bash
-curl -H "Authorization: Bearer your-token" http://localhost:3000/mcp
+curl -H "Authorization: Bearer your-token" http://localhost:8080/mcp
 ```
 
 #### Method 2: Query Parameter (NEW!)
 ```bash
-curl http://localhost:3000/mcp?token=your-token
+curl http://localhost:8080/mcp?token=your-token
 ```
 
 ### 2. Security Features
@@ -55,12 +55,12 @@ curl http://localhost:3000/mcp?token=your-token
 2. **Test with header**:
    ```bash
    curl -H "Authorization: Bearer my-secret-token" \
-     http://localhost:3000/health
+     http://localhost:8080/health
    ```
 
 3. **Test with query parameter**:
    ```bash
-   curl http://localhost:3000/health?token=my-secret-token
+   curl http://localhost:8080/health?token=my-secret-token
    ```
 
 4. **Run comprehensive tests**:
@@ -78,7 +78,7 @@ MCP_AUTH_TOKEN=your-secret-token
 
 # HTTP server settings
 MCP_HTTP=true              # Enable HTTP mode
-MCP_HTTP_PORT=3000         # Port (default: 3000)
+MCP_HTTP_PORT=8080         # Port (default: 8080)
 MCP_HTTP_HOST=0.0.0.0      # Host (default: 0.0.0.0)
 
 # File storage
@@ -154,13 +154,13 @@ MCP_AUTH_TOKEN=my-token npm run start:http
 ./scripts/test-auth.sh
 
 # Manual test - health check
-curl http://localhost:3000/health
+curl http://localhost:8080/health
 
 # Manual test - with token via header
-curl -H "Authorization: Bearer my-token" http://localhost:3000/mcp
+curl -H "Authorization: Bearer my-token" http://localhost:8080/mcp
 
 # Manual test - with token via query param
-curl http://localhost:3000/mcp?token=my-token
+curl http://localhost:8080/mcp?token=my-token
 ```
 
 ### Test with Claude Desktop

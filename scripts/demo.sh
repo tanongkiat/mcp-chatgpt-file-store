@@ -3,13 +3,13 @@
 # demo.sh — exercise the ChatGPT File Store MCP server over Streamable HTTP.
 #
 # Usage:
-#   ./scripts/demo.sh                 # use http://localhost:3000/mcp
+#   ./scripts/demo.sh                 # use http://localhost:8080/mcp
 #   BASE_URL=http://localhost:8080 ./scripts/demo.sh
 #
 # Requires: curl, awk, python3 (for pretty-printing JSON).
 set -euo pipefail
 
-BASE_URL="${BASE_URL:-http://localhost:3000/mcp}"
+BASE_URL="${BASE_URL:-http://localhost:8080/mcp}"
 ACCEPT="application/json, text/event-stream"
 
 echo "== ChatGPT File Store — HTTP demo =="
