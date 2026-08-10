@@ -321,6 +321,43 @@ The server implements the MCP Streamable HTTP transport:
 - `DELETE /mcp` — ends a session
 - `GET /health` — liveness check (`{"status":"ok","sessions":N}`)
 
+### Web login + browse (`/login` → `/mcp/browse`)
+
+In addition to the JSON-RPC API, the HTTP server serves a small password-protected
+file browser so you can view `/Storage` from a normal web browser:
+
+- `GET /login` — login form (username + password)
+- `POST /login` — validates credentials, then sets an `HttpOnly` session cookie
+- `GET /mcp/browse` — the authenticated file browser for `/Storage`
+- `GET /mcp/browse?path=docs` — navigate into a subfolder
+- `GET /mcp/browse?view=notes.md` — view a file's contents
+- `GET|POST /logout` — clears the session cookie
+
+Authentication is **username/password** (separate from the MCP bearer token), not
+OAuth. Sessions are `HttpOnly`, `SameSite=Lax` cookies signed with an HMAC key.
+Every path is still resolved through the same sandbox as the MCP tools, so an
+authenticated user can never read or navigate outside the allowed directories.
+
+**Configuration** (all optional — sensible defaults apply):
+
+| Variable | Default | Notes |
+|----------|---------|-------|
+| `MCP_BROWSE_USER` | `admin` | Login username |
+| `MCP_BROWSE_PASSWORD` | falls back to `MCP_AUTH_TOKEN` | Login password |
+| `MCP_BROWSE_SECRET` | falls back to `MCP_AUTH_TOKEN` (else random) | HMAC key for session cookies |
+
+If neither `MCP_BROWSE_PASSWORD` nor `MCP_AUTH_TOKEN` is configured, web login is
+disabled (the server logs a warning). When using `start:auth` or `start:daemon`,
+`MCP_AUTH_TOKEN` is already exported, so you can log in with username `admin` and
+your bearer token as the password.
+
+```bash
+# Quick manual start with explicit credentials
+MCP_BROWSE_USER=admin MCP_BROWSE_PASSWORD=secret \
+  node dist/index.js --http --port 8080
+# Then open http://localhost:8080/mcp/browse
+```
+
 ## Knowledge retrieval
 
 `get_knowledge` reads everything in the store at once, rather than making the

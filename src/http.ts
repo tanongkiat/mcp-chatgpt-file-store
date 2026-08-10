@@ -3,6 +3,18 @@ import { randomUUID, timingSafeEqual } from "node:crypto";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { createFileStoreServer } from "./server.js";
+import {
+  checkCredentials,
+  clearSessionCookie,
+  getBrowseConfig,
+  getSessionUser,
+  issueSessionCookie,
+  listForRel,
+  renderBrowsePage,
+  renderFileViewPage,
+  renderLoginPage,
+} from "./browse.js";
+import { getDefaultRoots } from "./filesystem.js";
 
 const SESSION_HEADER = "mcp-session-id";
 const MCP_PATH = "/mcp";
@@ -68,6 +80,45 @@ function readJsonBody(req: IncomingMessage): Promise<unknown> {
     });
     req.on("error", reject);
   });
+}
+
+/** Reads a raw request body as a UTF-8 string. */
+function readRawBody(req: IncomingMessage): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    req.on("data", (c) => chunks.push(c));
+    req.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
+    req.on("error", reject);
+  });
+}
+
+/** Parses an application/x-www-form-urlencoded body into a simple map. */
+async function readFormBody(req: IncomingMessage): Promise<Record<string, string>> {
+  const raw = await readRawBody(req);
+  const result: Record<string, string> = {};
+  for (const pair of raw.split("&")) {
+    if (!pair) continue;
+    const idx = pair.indexOf("=");
+    const key = idx < 0 ? pair : pair.slice(0, idx);
+    const value = idx < 0 ? "" : pair.slice(idx + 1);
+    const k = decodeURIComponent(key.replace(/\+/g, " "));
+    const v = decodeURIComponent(value.replace(/\+/g, " "));
+    if (k) result[k] = v;
+  }
+  return result;
+}
+
+function sendHtml(res: ServerResponse, status: number, html: string): void {
+  res.writeHead(status, {
+    "Content-Type": "text/html; charset=utf-8",
+    "Content-Length": Buffer.byteLength(html),
+  });
+  res.end(html);
+}
+
+function redirect(res: ServerResponse, location: string): void {
+  res.writeHead(302, { Location: location });
+  res.end();
 }
 
 function sendJson(res: ServerResponse, status: number, body: unknown): void {
@@ -154,6 +205,84 @@ export async function startHttpServer(
 
     if (req.method === "GET" && url.pathname === "/health") {
       sendJson(res, 200, { status: "ok", sessions: sessions.size });
+      return;
+    }
+
+    // ---- Web login / logout ------------------------------------------------
+
+    if (url.pathname === "/login") {
+      if (req.method === "GET") {
+        if (getSessionUser(req)) {
+          redirect(res, "/mcp/browse");
+          return;
+        }
+        const next = url.searchParams.get("next") ?? "/mcp/browse";
+        sendHtml(res, 200, renderLoginPage({ next }));
+        return;
+      }
+      if (req.method === "POST") {
+        const form = await readFormBody(req);
+        const username = (form.username ?? "").trim();
+        const password = form.password ?? "";
+        if (checkCredentials(username, password)) {
+          res.setHeader("Set-Cookie", issueSessionCookie(username));
+          const next = form.next?.startsWith("/") ? form.next : "/mcp/browse";
+          redirect(res, next);
+          return;
+        }
+        sendHtml(
+          res,
+          401,
+          renderLoginPage({
+            error: "Invalid username or password.",
+            next: form.next ?? "/mcp/browse",
+          })
+        );
+        return;
+      }
+      sendHtml(res, 405, renderLoginPage({ error: "Method not allowed." }));
+      return;
+    }
+
+    if (url.pathname === "/logout" && (req.method === "GET" || req.method === "POST")) {
+      res.setHeader("Set-Cookie", clearSessionCookie());
+      redirect(res, "/login");
+      return;
+    }
+
+    // ---- Authenticated file browser for /Storage ---------------------------
+
+    if (url.pathname === "/mcp/browse") {
+      const user = getSessionUser(req);
+      if (!user) {
+        redirect(res, `/login?next=${encodeURIComponent("/mcp/browse")}`);
+        return;
+      }
+      if (req.method !== "GET") {
+        sendHtml(res, 405, renderBrowsePage({ user, rel: "", entries: [], error: "Method not allowed." }));
+        return;
+      }
+
+      const rel = (url.searchParams.get("path") ?? "")
+        .replace(/^\/+/, "")
+        .replace(/\/+$/, "");
+      const view = url.searchParams.get("view") ?? "";
+
+      // View a single file's contents.
+      if (view) {
+        const html = await renderFileViewPage({ user, rel, name: view });
+        sendHtml(res, 200, html);
+        return;
+      }
+
+      // List a directory inside the sandbox.
+      try {
+        const entries = await listForRel(rel);
+        sendHtml(res, 200, renderBrowsePage({ user, rel, entries }));
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        sendHtml(res, 400, renderBrowsePage({ user, rel, entries: [], error: msg }));
+      }
       return;
     }
 
@@ -247,5 +376,16 @@ export async function startHttpServer(
     );
   } else {
     console.error("[mcp-chatgpt-file-store] Bearer token authentication is enabled.");
+  }
+
+  const browse = getBrowseConfig();
+  if (browse.hasPassword) {
+    console.error(
+      `[mcp-chatgpt-file-store] Web login enabled at /login → browse at /mcp/browse (user: ${browse.user}).`
+    );
+  } else {
+    console.error(
+      "[mcp-chatgpt-file-store] WARNING: No MCP_BROWSE_PASSWORD / MCP_AUTH_TOKEN set — web login for /mcp/browse is disabled."
+    );
   }
 }
