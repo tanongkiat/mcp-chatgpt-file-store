@@ -71,9 +71,25 @@ function setCors(res) {
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type, Mcp-Session-Id, Authorization, Accept");
 }
-function getSessionId(req) {
+/**
+ * Reads the session id from the Mcp-Session-Id header, falling back to a
+ * ?session=<id> query parameter. The header is the standard; the query
+ * parameter exists for clients that cannot set headers (e.g. opening the
+ * SSE stream straight from a browser).
+ */
+function getSessionId(req, url) {
     const header = req.headers[SESSION_HEADER];
-    return Array.isArray(header) ? header[0] : header;
+    const value = Array.isArray(header) ? header[0] : header;
+    if (value)
+        return value;
+    const queryValue = url.searchParams.get("session");
+    if (!queryValue)
+        return undefined;
+    // The SDK transport reads the session from the header itself, and rebuilds
+    // those headers from rawHeaders, so the value has to land in both.
+    req.headers[SESSION_HEADER] = queryValue;
+    req.rawHeaders.push("Mcp-Session-Id", queryValue);
+    return queryValue;
 }
 /**
  * Creates a fresh MCP server + transport for a new HTTP session and
@@ -124,11 +140,11 @@ export async function startHttpServer(port, host = "0.0.0.0") {
             });
             return;
         }
-        const sessionId = getSessionId(req);
+        const sessionId = getSessionId(req, url);
         // GET: open SSE stream for an existing session
         if (req.method === "GET") {
             if (!sessionId) {
-                sendJson(res, 400, { error: "Missing Mcp-Session-Id header" });
+                sendJson(res, 400, { error: "Missing session. Provide the Mcp-Session-Id header or ?session=<id>. Start a session with POST /mcp (initialize)." });
                 return;
             }
             const session = sessions.get(sessionId);
@@ -142,7 +158,7 @@ export async function startHttpServer(port, host = "0.0.0.0") {
         // DELETE: close an existing session
         if (req.method === "DELETE") {
             if (!sessionId) {
-                sendJson(res, 400, { error: "Missing Mcp-Session-Id header" });
+                sendJson(res, 400, { error: "Missing session. Provide the Mcp-Session-Id header or ?session=<id>. Start a session with POST /mcp (initialize)." });
                 return;
             }
             const session = sessions.get(sessionId);

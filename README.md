@@ -73,6 +73,7 @@ mcp-chatgpt-file-store/
 ├── scripts/
 │   ├── generate-token.sh    # create + save an auth token
 │   ├── start-with-auth.sh   # generate token and start the HTTP server
+│   ├── start-daemon.sh      # start detached (nohup + disown), logs to logs/
 │   ├── stop.sh              # stop the HTTP server by port
 │   ├── setup-claude.sh      # register this server with Claude
 │   └── test-auth.sh         # verify auth is enforced
@@ -201,6 +202,39 @@ Both methods are validated using constant-time comparison for security. Requests
 without a valid token receive `401 Unauthorized`. The `/health` endpoint stays 
 open (no token needed) for liveness checks.
 
+> Query-parameter tokens land in browser history and proxy/nginx access logs in
+> a way headers do not. Prefer the header wherever the client allows it.
+
+### Sessions
+
+Streamable HTTP is **session-based**, so a URL alone is not a connection.
+`POST /mcp` with `initialize` mints a session and returns it in the
+`Mcp-Session-Id` response header; every later request must present that id, via
+the header or a `?session=<id>` query parameter. `GET /mcp` only opens the SSE
+stream for an existing session — it is not how you call the server.
+
+This is why pasting the `/mcp` URL into a browser returns
+`Missing session`: a browser sends a bare `GET` with no session, and it cannot
+send `Accept: text/event-stream` either. Use `/health` for a browser-friendly
+check, or drive the handshake with curl:
+
+```bash
+URL="http://localhost:8080/mcp?token=<token>"
+
+SID=$(curl -s -D- -X POST "$URL" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"curl","version":"1"}}}' \
+  -o /dev/null | grep -i '^mcp-session-id' | tr -d '\r' | awk '{print $2}')
+
+curl -s -X POST "$URL&session=$SID" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -d '{"jsonrpc":"2.0","id":2,"method":"tools/list"}'
+```
+
+A real MCP client does all of this for you — you only give it the URL.
+
 When registering the connector in ChatGPT, add the token as a custom header:
 `Authorization: Bearer <token>`.
 
@@ -236,6 +270,32 @@ source .env && npm run start:http
 ```
 
 See [QUICKSTART.md](QUICKSTART.md) for more details.
+
+### Running detached (servers, remote hosts)
+
+`start:auth` and `start:http` hold the terminal. To leave the server running
+after you log out — the usual case on a VPS:
+
+```bash
+npm run start:daemon
+```
+
+It reuses the token from `.mcp-token`, starts the server under `nohup` and
+`disown` so it survives `SIGHUP`, appends output to `logs/mcp-server.log`, and
+writes the PID to `.mcp-server.pid`. It refuses to start if the port is already
+taken, and reports the log tail if the server dies on startup instead of
+leaving you with a silent failure.
+
+```bash
+npm run start:daemon -- --port 9090 --host 127.0.0.1
+tail -f logs/mcp-server.log
+npm run stop
+```
+
+Both `logs/` and `.mcp-server.pid` are gitignored.
+
+> For a machine that reboots, prefer a real supervisor (`systemd` on Linux,
+> `launchd` on macOS) — `nohup` survives logout, not restarts.
 
 ### Stopping the server
 
@@ -333,6 +393,7 @@ npm run watch          # recompile on change
 npm run start          # run compiled server over stdio
 npm run start:http     # run compiled server over Streamable HTTP (port 8080)
 npm run start:auth     # generate a token and start the HTTP server with auth
+npm run start:daemon   # start detached (survives logout), logs to logs/
 npm run stop           # stop the HTTP server (SIGTERM, then --force for SIGKILL)
 npm run generate-token # create a token and save it to .mcp-token
 npm run dev            # run stdio mode with tsx (no build step)

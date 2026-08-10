@@ -13,6 +13,7 @@
     "start": "node dist/index.js",
     "start:http": "node dist/index.js --http",
     "start:auth": "./scripts/start-with-auth.sh",
+    "start:daemon": "./scripts/start-daemon.sh",
     "stop": "./scripts/stop.sh",
     "generate-token": "./scripts/generate-token.sh",
     "dev": "tsx src/index.ts",

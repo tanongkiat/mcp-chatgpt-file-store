@@ -29,7 +29,10 @@
       "Bash(curl -s http://localhost:8080/health)",
       "Bash(./scripts/stop.sh)",
       "Bash(git -C doc2md-mcp log --oneline -3)",
-      "Bash(git check-ignore *)"
+      "Bash(git check-ignore *)",
+      "Bash(curl -s -i --max-time 15 https://mcp.boydproject.site:8443/mcp?token=de691007808a88da0b8fbf6ec801c4ebd924af7843a513538b53e1382eb68d34)",
+      "Bash(chmod +x scripts/start-daemon.sh)",
+      "Bash(python3 -)"
     ]
   }
 }
