@@ -17,6 +17,7 @@ ChatGPT gets these tools:
 | `read_file` | Reads a text file |
 | `get_file_info` | File metadata (size, modified time) |
 | `search_files` | Finds files matching a pattern (`*.md`, `*notes*`) |
+| `get_knowledge` | Returns the whole store as one body of knowledge — Markdown, or PlantUML when it describes a flow |
 | `write_file` | **Saves** a file (creates folders automatically) |
 | `append_file` | Appends to a running log/notes file |
 | `create_directory` | Creates folders |
@@ -67,7 +68,8 @@ mcp-chatgpt-file-store/
 │   ├── index.ts             # entrypoint — stdio or HTTP mode
 │   ├── http.ts              # Streamable HTTP server (stateful sessions)
 │   ├── server.ts            # MCP server + tool registration
-│   └── filesystem.ts        # sandboxed file operations + path safety
+│   ├── filesystem.ts        # sandboxed file operations + path safety
+│   └── knowledge.ts         # knowledge gathering + PlantUML flow extraction
 ├── scripts/
 │   ├── generate-token.sh    # create + save an auth token
 │   ├── start-with-auth.sh   # generate token and start the HTTP server
@@ -258,6 +260,48 @@ The server implements the MCP Streamable HTTP transport:
 - `GET /mcp` — SSE stream for server-initiated messages
 - `DELETE /mcp` — ends a session
 - `GET /health` — liveness check (`{"status":"ok","sessions":N}`)
+
+## Knowledge retrieval
+
+`get_knowledge` reads everything in the store at once, rather than making the
+model open files one by one:
+
+```jsonc
+get_knowledge({
+  "query": "auth",        // optional: only docs whose path or text matches
+  "format": "auto",       // "auto" | "markdown" | "plantuml"
+  "max_bytes": 100000     // budget across all documents
+})
+```
+
+**Formats:**
+
+- `markdown` — every document concatenated under `## path/to/file.md` headings.
+- `plantuml` — diagrams only. A document yields a diagram three ways:
+  an existing `@startuml` block or ` ```plantuml ` fence is passed through
+  unchanged; two or more `A -> B: label` lines become a sequence diagram;
+  two or more numbered steps become an activity diagram.
+- `auto` (default) — Markdown, with a PlantUML section prepended when any
+  document describes a flow.
+
+So `1. User submits the form` / `2. Service validates the email` turns into:
+
+```plantuml
+@startuml
+start
+:User submits the form;
+:Service validates the email;
+stop
+@enduml
+```
+
+Binary files and unknown extensions are skipped, and files are read through the
+same sandbox checks as every other tool.
+
+> The extraction is deterministic pattern-matching, not interpretation — it
+> finds flows that are already written as diagrams, arrows, or numbered steps.
+> For prose that merely *implies* a process, use `format: "markdown"` and let
+> the model author the diagram.
 
 ## Example usage
 

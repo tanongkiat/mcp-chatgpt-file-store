@@ -14,6 +14,12 @@ import {
   searchFiles,
   writeFileContents,
 } from "./filesystem.js";
+import {
+  gatherKnowledge,
+  renderAuto,
+  renderMarkdown,
+  renderPlantUml,
+} from "./knowledge.js";
 
 export function createFileStoreServer(): McpServer {
   const roots = getDefaultRoots();
@@ -153,6 +159,49 @@ export function createFileStoreServer(): McpServer {
       return {
         content: [{ type: "text", text: JSON.stringify({ matches }, null, 2) }],
       };
+    }
+  );
+
+  server.registerTool(
+    "get_knowledge",
+    {
+      title: "Get knowledge from the store",
+      description:
+        "Reads the documents in the file store and returns them as one body of knowledge. " +
+        "Returns Markdown, or PlantUML when the content describes a flow — existing " +
+        "@startuml blocks are passed through, and diagrams are derived from 'A -> B' " +
+        "lines or numbered steps. Use this to ground an answer on everything stored, " +
+        "instead of reading files one at a time.",
+      inputSchema: {
+        query: z
+          .string()
+          .optional()
+          .describe("Only include documents whose path or content contains this text"),
+        format: z
+          .enum(["auto", "markdown", "plantuml"])
+          .optional()
+          .describe(
+            "auto (default): Markdown, plus PlantUML when a flow is present. " +
+              "markdown: content only. plantuml: diagrams only."
+          ),
+        max_bytes: z
+          .number()
+          .int()
+          .positive()
+          .optional()
+          .describe("Byte budget across all documents (default 100000)"),
+      },
+    },
+    async ({ query, format = "auto", max_bytes: maxBytes }) => {
+      const result = await gatherKnowledge(roots, { query, maxBytes });
+      const text =
+        format === "markdown"
+          ? renderMarkdown(result)
+          : format === "plantuml"
+            ? renderPlantUml(result)
+            : renderAuto(result);
+
+      return { content: [{ type: "text", text }] };
     }
   );
 
