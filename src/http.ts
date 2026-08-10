@@ -8,15 +8,40 @@ const SESSION_HEADER = "mcp-session-id";
 const MCP_PATH = "/mcp";
 const AUTH_TOKEN = process.env.MCP_AUTH_TOKEN;
 
-/** Constant-time bearer token check. Returns true if no token is configured (auth disabled). */
-function isAuthorized(req: IncomingMessage): boolean {
+/** 
+ * Extracts the bearer token from either:
+ * 1. Authorization header: "Bearer <token>"
+ * 2. Query parameter: ?token=<token>
+ * Returns undefined if no token is found.
+ */
+function extractToken(req: IncomingMessage, url: URL): string | undefined {
+  // Try Authorization header first
+  const header = req.headers["authorization"];
+  const authValue = Array.isArray(header) ? header[0] : header;
+  if (authValue?.startsWith("Bearer ")) {
+    return authValue.slice("Bearer ".length);
+  }
+
+  // Try query parameter as fallback
+  const queryToken = url.searchParams.get("token");
+  if (queryToken) {
+    return queryToken;
+  }
+
+  return undefined;
+}
+
+/** 
+ * Constant-time bearer token check. Returns true if no token is configured (auth disabled).
+ * Accepts tokens from either Authorization header or query parameter.
+ */
+function isAuthorized(req: IncomingMessage, url: URL): boolean {
   if (!AUTH_TOKEN) return true;
 
-  const header = req.headers["authorization"];
-  const value = Array.isArray(header) ? header[0] : header;
-  if (!value?.startsWith("Bearer ")) return false;
+  const token = extractToken(req, url);
+  if (!token) return false;
 
-  const provided = Buffer.from(value.slice("Bearer ".length));
+  const provided = Buffer.from(token);
   const expected = Buffer.from(AUTH_TOKEN);
   if (provided.length !== expected.length) return false;
   return timingSafeEqual(provided, expected);
@@ -121,9 +146,11 @@ export async function startHttpServer(
       return;
     }
 
-    if (!isAuthorized(req)) {
+    if (!isAuthorized(req, url)) {
       res.setHeader("WWW-Authenticate", "Bearer");
-      sendJson(res, 401, { error: "Unauthorized. Missing or invalid Bearer token." });
+      sendJson(res, 401, { 
+        error: "Unauthorized. Provide token via Authorization header (Bearer <token>) or query parameter (?token=<token>)" 
+      });
       return;
     }
 
