@@ -9,7 +9,7 @@ export interface FileInfo extends FileEntry {
     permissions: string;
 }
 /**
- * Resolves an allowed root directory. Falls back to <server-folder>/chatgpt
+ * Resolves an allowed root directory. Falls back to <server-folder>/Storage
  * when the environment variable is not set or invalid.
  */
 export declare function getDefaultRoots(): string[];

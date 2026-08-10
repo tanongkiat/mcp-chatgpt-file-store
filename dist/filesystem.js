@@ -2,7 +2,7 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import * as os from "node:os";
 /**
- * Resolves an allowed root directory. Falls back to <server-folder>/chatgpt
+ * Resolves an allowed root directory. Falls back to <server-folder>/Storage
  * when the environment variable is not set or invalid.
  */
 export function getDefaultRoots() {
@@ -17,7 +17,7 @@ export function getDefaultRoots() {
         }
     }
     if (roots.size === 0) {
-        roots.add(path.join(process.cwd(), "chatgpt"));
+        roots.add(path.join(process.cwd(), "Storage"));
     }
     return [...roots];
 }

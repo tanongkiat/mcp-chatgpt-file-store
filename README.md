@@ -32,7 +32,7 @@ mcp-chatgpt-file-store/
 │   ├── http.ts         # Streamable HTTP server (stateful sessions)
 │   ├── server.ts       # MCP server + tool registration
 │   └── filesystem.ts   # sandboxed file operations + path safety
-├── chatgpt/            # default sandbox — <folder where server runs>/chatgpt
+├── Storage/            # default sandbox — <folder where server runs>/Storage
 └── package.json
 ```
 
@@ -57,8 +57,8 @@ npm run build
 
 ### 2. Choose where ChatGPT can save
 
-By default the sandbox is `<folder where the server runs>/chatgpt` (i.e. the
-`chatgpt/` folder inside this project). To use your own folder(s), set an
+By default the sandbox is `<folder where the server runs>/Storage` (i.e. the
+`Storage/` folder inside this project). To use your own folder(s), set an
 environment variable:
 
 ```bash
@@ -117,14 +117,60 @@ Set `MCP_AUTH_TOKEN` to require a Bearer token on every `/mcp` request:
 MCP_AUTH_TOKEN=$(openssl rand -hex 32) node dist/index.js --http --port 8080
 ```
 
-Requests must then include `Authorization: Bearer <token>` — otherwise they get a
-`401 Unauthorized`. `/health` stays open (no token needed) for liveness checks.
-When registering the connector in ChatGPT, add the same value as a custom header:
+The server accepts tokens via **two methods**:
+
+1. **Authorization header** (standard):
+   ```bash
+   curl -H "Authorization: Bearer <token>" http://localhost:3000/mcp
+   ```
+
+2. **Query parameter** (convenient for some clients):
+   ```bash
+   curl http://localhost:3000/mcp?token=<token>
+   ```
+
+Both methods are validated using constant-time comparison for security. Requests 
+without a valid token receive `401 Unauthorized`. The `/health` endpoint stays 
+open (no token needed) for liveness checks.
+
+When registering the connector in ChatGPT, add the token as a custom header:
 `Authorization: Bearer <token>`.
 
 If `MCP_AUTH_TOKEN` is not set, the server logs a startup warning and accepts
 unauthenticated requests — fine for quick local testing, **not** for anything
 reachable from the internet.
+
+For full OAuth 2.0 implementation (multi-user scenarios), see [OAUTH_GUIDE.md](OAUTH_GUIDE.md).
+
+### Quick Start with Authentication
+
+For the easiest way to start with authentication:
+
+```bash
+# Auto-generate token and start server
+npm run start:auth
+```
+
+This script will:
+- Generate a secure 64-character token
+- Save it to `.mcp-token` for reuse
+- Start the HTTP server with authentication
+- Display the token and usage examples
+
+Or generate a token separately:
+
+```bash
+# Generate and save token
+npm run generate-token
+
+# Start server manually
+source .env && npm run start:http
+```
+
+See [QUICKSTART.md](QUICKSTART.md) for more details.
+
+### HTTP Transport
+
 The server implements the MCP Streamable HTTP transport:
 
 - `POST /mcp` — JSON-RPC requests (first call creates a session and returns a

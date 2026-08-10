@@ -15,7 +15,7 @@ export interface FileInfo extends FileEntry {
 }
 
 /**
- * Resolves an allowed root directory. Falls back to <server-folder>/chatgpt
+ * Resolves an allowed root directory. Falls back to <server-folder>/Storage
  * when the environment variable is not set or invalid.
  */
 export function getDefaultRoots(): string[] {
@@ -32,7 +32,7 @@ export function getDefaultRoots(): string[] {
   }
 
   if (roots.size === 0) {
-    roots.add(path.join(process.cwd(), "chatgpt"));
+    roots.add(path.join(process.cwd(), "Storage"));
   }
 
   return [...roots];
