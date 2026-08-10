@@ -28,13 +28,31 @@ ChatGPT gets these tools:
 ```text
 mcp-chatgpt-file-store/
 ├── src/
-│   ├── index.ts        # entrypoint — stdio or HTTP mode
-│   ├── http.ts         # Streamable HTTP server (stateful sessions)
-│   ├── server.ts       # MCP server + tool registration
-│   └── filesystem.ts   # sandboxed file operations + path safety
-├── Storage/            # default sandbox — <folder where server runs>/Storage
+│   ├── index.ts             # entrypoint — stdio or HTTP mode
+│   ├── http.ts              # Streamable HTTP server (stateful sessions)
+│   ├── server.ts            # MCP server + tool registration
+│   └── filesystem.ts        # sandboxed file operations + path safety
+├── scripts/
+│   ├── generate-token.sh    # create + save an auth token
+│   ├── start-with-auth.sh   # generate token and start the HTTP server
+│   ├── setup-claude.sh      # register this server with Claude
+│   └── test-auth.sh         # verify auth is enforced
+├── dist/                    # compiled output (committed, so no build needed to run)
+├── Storage/                 # default sandbox — <folder where server runs>/Storage
 └── package.json
 ```
+
+## Documentation
+
+| Doc | Covers |
+|---|---|
+| [GETTING_STARTED.md](GETTING_STARTED.md) | First run, start to finish |
+| [QUICKSTART.md](QUICKSTART.md) | Shortest path to an authenticated server |
+| [CLAUDE_SETUP.md](CLAUDE_SETUP.md) | Registering the server with Claude |
+| [AUTH_FLOW.md](AUTH_FLOW.md) | How token auth works end to end |
+| [TOKEN_SCRIPTS.md](TOKEN_SCRIPTS.md) | What each script in `scripts/` does |
+| [OAUTH_GUIDE.md](OAUTH_GUIDE.md) | Full OAuth 2.0 for multi-user setups |
+| [SUMMARY.md](SUMMARY.md) | Project overview |
 
 ## Two ways to run it
 
@@ -54,6 +72,9 @@ cd mcp-chatgpt-file-store
 npm install
 npm run build
 ```
+
+`dist/` is committed, so a freshly cloned copy runs without building. Rebuild
+after any change to `src/`.
 
 ### 2. Choose where ChatGPT can save
 
@@ -108,6 +129,25 @@ npm run start:http -- --port 8080 --host 0.0.0.0
 ```
 
 Then register `http://localhost:3000/mcp` as the MCP server URL in ChatGPT.
+
+### 4c. Connect to Claude Desktop
+
+Any MCP client works, not just ChatGPT. For Claude Desktop, run the interactive
+setup script — it resolves the absolute path to `dist/index.js`, asks which
+folder to sandbox, and writes the entry into `claude_desktop_config.json`:
+
+```bash
+./scripts/setup-claude.sh
+```
+
+Restart Claude Desktop afterwards, then confirm the server appears in its MCP
+server list. See [CLAUDE_SETUP.md](CLAUDE_SETUP.md) for the manual config.
+
+For Claude Code, register it from the command line instead:
+
+```bash
+claude mcp add file-store -- node /absolute/path/to/mcp-chatgpt-file-store/dist/index.js
+```
 
 ### Authentication (recommended for any non-localhost deployment)
 
@@ -204,10 +244,13 @@ Once connected, you can tell ChatGPT things like:
 ## Commands
 
 ```bash
-npm run build      # compile TypeScript
-npm run start      # run compiled server over stdio
-npm run start:http # run compiled server over Streamable HTTP (port 3000)
-npm run dev        # run stdio mode with tsx (no build step)
-npm run dev:http   # run HTTP mode with tsx (no build step)
-npm run inspect    # open MCP Inspector UI
+npm run build          # compile TypeScript
+npm run watch          # recompile on change
+npm run start          # run compiled server over stdio
+npm run start:http     # run compiled server over Streamable HTTP (port 3000)
+npm run start:auth     # generate a token and start the HTTP server with auth
+npm run generate-token # create a token and save it to .mcp-token
+npm run dev            # run stdio mode with tsx (no build step)
+npm run dev:http       # run HTTP mode with tsx (no build step)
+npm run inspect        # open MCP Inspector UI
 ```
